@@ -1033,25 +1033,25 @@ def main():
     zonedict = {"Max Downlink":"white","> RSW Instantaneous":"lightgrey","> IS Instantaneous":"silver","< IS Instantaneous":"darkgrey"}
     AU = 149598000.0
     "Does the Stuff"
-    config = read_json("orbit_config.json")
+    config = read_json("orbit_config_js.json")
     mk_path = Path(config["metakernel"]["path"])
     mk_name = config["metakernel"]["name"]
     loaded=loadkernel(mk_path, mk_name)
     
-    probe_path = Path(config["probekernel"]["path"])
-    probe_name = config["probekernel"]["name"]
-    probe_loaded=loadkernel(probe_path, probe_name)
-    probe_bounds = get_orbit_coverage(probe_path, probe_name, -96)
+    # probe_path = Path(config["probekernel"]["path"])
+    # probe_name = config["probekernel"]["name"]
+    # probe_loaded=loadkernel(probe_path, probe_name)
+    # probe_bounds = get_orbit_coverage(probe_path, probe_name, -96)
 
-    sta_path = Path(config["stereokernel"]["path"])
-    sta_name = config["stereokernel"]["name"]
-    sta_loaded=loadkernel(sta_path, sta_name)
-    sta_bounds = get_orbit_coverage(sta_path, sta_name, -234)
+    # sta_path = Path(config["stereokernel"]["path"])
+    # sta_name = config["stereokernel"]["name"]
+    # sta_loaded=loadkernel(sta_path, sta_name)
+    # sta_bounds = get_orbit_coverage(sta_path, sta_name, -234)
 
-    bc_path = Path(config["bepikernel"]["path"])
-    bc_name = config["bepikernel"]["name"]
-    bc_loaded=loadkernel(bc_path, bc_name)
-    bc_bounds = get_orbit_coverage(bc_path, bc_name, -121)
+    # bc_path = Path(config["bepikernel"]["path"])
+    # bc_name = config["bepikernel"]["name"]
+    # bc_loaded=loadkernel(bc_path, bc_name)
+    # bc_bounds = get_orbit_coverage(bc_path, bc_name, -121)
 
 
     et_bounds=get_solo_coverage(mk_path)
@@ -1063,7 +1063,7 @@ def main():
     egams = get_NAV_windows("SOLO","EARTH",et_bounds,10000.0)
     gams = np.sort(np.concatenate((vgams,egams)),axis=None)
     
-    downlink = daily_avg_downlink(config["downlink"]["sifecs"],"PASS",config["downlink"]["zones"])
+   # downlink = daily_avg_downlink(config["downlink"]["sifecs"],"PASS",config["downlink"]["zones"])
     
     if config["windows"]["rsws"] == "default":
         print("Calculating default RSWs...")
@@ -1081,40 +1081,40 @@ def main():
     ets = np.arange(et_bounds[0],et_bounds[1],21600)
     ets[len(ets)-1]=et_bounds[1]
 
-    first_common_et_probe = np.min(np.where(ets >= probe_bounds[0]))
-    last_common_et_probe = np.max(np.where(ets < probe_bounds[1]))
-    probe_ets = np.arange(ets[first_common_et_probe],ets[last_common_et_probe],21600)
-    probe_ets[len(probe_ets)-1]=ets[last_common_et_probe]
+    # first_common_et_probe = np.min(np.where(ets >= probe_bounds[0]))
+    # last_common_et_probe = np.max(np.where(ets < probe_bounds[1]))
+    # probe_ets = np.arange(ets[first_common_et_probe],ets[last_common_et_probe],21600)
+    # probe_ets[len(probe_ets)-1]=ets[last_common_et_probe]
 
-    first_common_et_sta = np.min(np.where(ets >= sta_bounds[0]))
-    last_common_et_sta = np.max(np.where(ets < sta_bounds[1]))
-    sta_ets = np.arange(ets[first_common_et_sta],ets[last_common_et_sta],21600)
-    sta_ets[len(sta_ets)-1]=ets[last_common_et_sta]
+    # first_common_et_sta = np.min(np.where(ets >= sta_bounds[0]))
+    # last_common_et_sta = np.max(np.where(ets < sta_bounds[1]))
+    # sta_ets = np.arange(ets[first_common_et_sta],ets[last_common_et_sta],21600)
+    # sta_ets[len(sta_ets)-1]=ets[last_common_et_sta]
 
-    first_common_et_bc = np.min(np.where(ets >= bc_bounds[0]))
-    last_common_et_bc = np.max(np.where(ets < bc_bounds[1]))
-    bc_ets = np.arange(ets[first_common_et_bc],ets[last_common_et_bc],21600)
-    bc_ets[len(bc_ets)-1]=ets[last_common_et_bc]
+    # first_common_et_bc = np.min(np.where(ets >= bc_bounds[0]))
+    # last_common_et_bc = np.max(np.where(ets < bc_bounds[1]))
+    # bc_ets = np.arange(ets[first_common_et_bc],ets[last_common_et_bc],21600)
+    # bc_ets[len(bc_ets)-1]=ets[last_common_et_bc]
 
-    mer_first_et=np.max(bc_ets)+21600.0    
+  #  mer_first_et=np.max(bc_ets)+21600.0    
     mer_last_et=sp.str2et("2028-05-01 06:00:00.000 UTC")
-    mer_ets = np.arange(mer_first_et,mer_last_et,21600)
+    #mer_ets = np.arange(mer_first_et,mer_last_et,21600)
     
     [solo_GSE_pos, ltime] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")   
     [solo_HCI_state, ltime] = sp.spkezr("SOLO",ets,"SUN_INERTIAL","NONE","SUN") 
     #[earth_HCI_pos, ltime] = sp.spkpos("EARTH",ets,"SUN_INERTIAL","NONE","SUN")
     [earth_HCI_state, ltime] = sp.spkezr("EARTH",ets,"SUN_INERTIAL","NONE","SUN")
-    [probe_GSE_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_GSE","NONE","EARTH")
-    [probe_HCI_pos, ltime] = sp.spkpos("SPP",probe_ets,"SUN_INERTIAL","NONE","SUN")
-    [sta_GSE_pos, ltime] = sp.spkpos("STEREO AHEAD",sta_ets,"SOLO_GSE","NONE","EARTH")
-    [bc_GSE_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_GSE","NONE","EARTH")
-    [bc_HCI_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SUN_INERTIAL","NONE","SUN")
-    [mer_GSE_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SOLO_GSE","NONE","EARTH")
-    [mer_HCI_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SUN_INERTIAL","NONE","SUN")
-    
-    bc_ets = np.concatenate((bc_ets,mer_ets))
-    bc_GSE_pos = np.concatenate((np.array(bc_GSE_pos),np.array(mer_GSE_pos)))
-    bc_HCI_pos = np.concatenate((np.array(bc_HCI_pos),np.array(mer_HCI_pos)))
+    # [probe_GSE_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_GSE","NONE","EARTH")
+    # [probe_HCI_pos, ltime] = sp.spkpos("SPP",probe_ets,"SUN_INERTIAL","NONE","SUN")
+    # [sta_GSE_pos, ltime] = sp.spkpos("STEREO AHEAD",sta_ets,"SOLO_GSE","NONE","EARTH")
+    # [bc_GSE_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_GSE","NONE","EARTH")
+    # [bc_HCI_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SUN_INERTIAL","NONE","SUN")
+    #[mer_GSE_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SOLO_GSE","NONE","EARTH")
+   # [mer_HCI_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SUN_INERTIAL","NONE","SUN")
+  #  
+    #bc_ets = np.concatenate((bc_ets,mer_ets))
+   # bc_GSE_pos = np.concatenate((np.array(bc_GSE_pos),np.array(mer_GSE_pos)))
+  #  bc_HCI_pos = np.concatenate((np.array(bc_HCI_pos),np.array(mer_HCI_pos)))
     
     solo_HCI_state = np.array(solo_HCI_state)
     solo_GSE_pos = np.array(solo_GSE_pos)/AU 
@@ -1150,21 +1150,21 @@ def main():
     #exit()
     set_trace()
 
-    probe_GSE_pos = np.array(probe_GSE_pos)/AU
-    probe_HCI_pos = np.array(probe_HCI_pos)/AU
-    probe_hlat = np.zeros(len(probe_ets))    
-    for i, void in enumerate(probe_ets):
-        [buffer,buffer,probe_hlat[i]] = sp.reclat(probe_HCI_pos[i,:])
-    probe_hlat = probe_hlat*sp.dpr()
+    # probe_GSE_pos = np.array(probe_GSE_pos)/AU
+    # probe_HCI_pos = np.array(probe_HCI_pos)/AU
+    # probe_hlat = np.zeros(len(probe_ets))    
+    # for i, void in enumerate(probe_ets):
+    #     [buffer,buffer,probe_hlat[i]] = sp.reclat(probe_HCI_pos[i,:])
+   # probe_hlat = probe_hlat*sp.dpr()
 
-    sta_GSE_pos = np.array(sta_GSE_pos)/AU
+    # sta_GSE_pos = np.array(sta_GSE_pos)/AU
     
-    bc_GSE_pos = np.array(bc_GSE_pos)/AU
-    bc_HCI_pos = np.array(bc_HCI_pos)/AU
-    bc_hlat = np.zeros(len(bc_ets))    
-    for i, void in enumerate(bc_ets):
-        [buffer,buffer,bc_hlat[i]] = sp.reclat(bc_HCI_pos[i,:])
-    bc_hlat = bc_hlat*sp.dpr()
+    # bc_GSE_pos = np.array(bc_GSE_pos)/AU
+    # bc_HCI_pos = np.array(bc_HCI_pos)/AU
+    # bc_hlat = np.zeros(len(bc_ets))    
+    # for i, void in enumerate(bc_ets):
+    #     [buffer,buffer,bc_hlat[i]] = sp.reclat(bc_HCI_pos[i,:])
+    # bc_hlat = bc_hlat*sp.dpr()
 
     """
     print("LEN LTP", len(LTPs[0]))

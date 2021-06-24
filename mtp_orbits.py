@@ -634,25 +634,25 @@ def main():
     zonedict = {"Max Downlink":"white","> RSW Instantaneous":"lightgrey","> IS Instantaneous":"silver","< IS Instantaneous":"darkgrey"}
     AU = 149598000.0
     "Does the Stuff"
-    config = read_json("orbit_config.json")
+    config = read_json("orbit_config_js.json")
     mk_path = Path(config["metakernel"]["path"])
     mk_name = config["metakernel"]["name"]
     loaded=loadkernel(mk_path, mk_name)
     
-    probe_path = Path(config["probekernel"]["path"])
-    probe_name = config["probekernel"]["name"]
-    probe_loaded=loadkernel(probe_path, probe_name)
-    probe_bounds = get_orbit_coverage(probe_path, probe_name, -96)
+    # probe_path = Path(config["probekernel"]["path"])
+    # probe_name = config["probekernel"]["name"]
+    # probe_loaded=loadkernel(probe_path, probe_name)
+    # probe_bounds = get_orbit_coverage(probe_path, probe_name, -96)
 
-    sta_path = Path(config["stereokernel"]["path"])
-    sta_name = config["stereokernel"]["name"]
+    sta_path = Path(config["stereoakernel"]["path"])
+    sta_name = config["stereoakernel"]["name"]
     sta_loaded=loadkernel(sta_path, sta_name)
     sta_bounds = get_orbit_coverage(sta_path, sta_name, -234)
 
-    bc_path = Path(config["bepikernel"]["path"])
-    bc_name = config["bepikernel"]["name"]
-    bc_loaded=loadkernel(bc_path, bc_name)
-    bc_bounds = get_orbit_coverage(bc_path, bc_name, -121)
+    # bc_path = Path(config["bepikernel"]["path"])
+    # bc_name = config["bepikernel"]["name"]
+    # bc_loaded=loadkernel(bc_path, bc_name)
+    # bc_bounds = get_orbit_coverage(bc_path, bc_name, -121)
 
 
     et_bounds=get_solo_coverage(mk_path)
@@ -682,39 +682,39 @@ def main():
     ets = np.arange(et_bounds[0],et_bounds[1],21600)
     ets[len(ets)-1]=et_bounds[1]
 
-    first_common_et_probe = np.min(np.where(ets >= probe_bounds[0]))
-    last_common_et_probe = np.max(np.where(ets < probe_bounds[1]))
-    probe_ets = np.arange(ets[first_common_et_probe],ets[last_common_et_probe],21600)
-    probe_ets[len(probe_ets)-1]=ets[last_common_et_probe]
+    # first_common_et_probe = np.min(np.where(ets >= probe_bounds[0]))
+    # last_common_et_probe = np.max(np.where(ets < probe_bounds[1]))
+    # probe_ets = np.arange(ets[first_common_et_probe],ets[last_common_et_probe],21600)
+    # probe_ets[len(probe_ets)-1]=ets[last_common_et_probe]
 
     first_common_et_sta = np.min(np.where(ets >= sta_bounds[0]))
     last_common_et_sta = np.max(np.where(ets < sta_bounds[1]))
     sta_ets = np.arange(ets[first_common_et_sta],ets[last_common_et_sta],21600)
     sta_ets[len(sta_ets)-1]=ets[last_common_et_sta]
 
-    first_common_et_bc = np.min(np.where(ets >= bc_bounds[0]))
-    last_common_et_bc = np.max(np.where(ets < bc_bounds[1]))
-    bc_ets = np.arange(ets[first_common_et_bc],ets[last_common_et_bc],21600)
-    bc_ets[len(bc_ets)-1]=ets[last_common_et_bc]
+    # first_common_et_bc = np.min(np.where(ets >= bc_bounds[0]))
+    # last_common_et_bc = np.max(np.where(ets < bc_bounds[1]))
+    # bc_ets = np.arange(ets[first_common_et_bc],ets[last_common_et_bc],21600)
+    # bc_ets[len(bc_ets)-1]=ets[last_common_et_bc]
 
-    mer_first_et=np.max(bc_ets)+21600.0    
+    #mer_first_et=np.max(bc_ets)+21600.0    
     mer_last_et=sp.str2et("2028-05-01 06:00:00.000 UTC")
     mer_ets = np.arange(mer_first_et,mer_last_et,21600)
     
     [solo_GSE_pos, ltime] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")   
     [solo_HCI_state, ltime] = sp.spkezr("SOLO",ets,"SOLO_HCI","NONE","SUN") 
     [earth_HCI_pos, ltime] = sp.spkpos("EARTH",ets,"SOLO_HCI","NONE","SUN")
-    [probe_GSE_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_GSE","NONE","EARTH")
-    [probe_HCI_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_HCI","NONE","SUN")
+    #[probe_GSE_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_GSE","NONE","EARTH")
+    #[probe_HCI_pos, ltime] = sp.spkpos("SPP",probe_ets,"SOLO_HCI","NONE","SUN")
     [sta_GSE_pos, ltime] = sp.spkpos("STEREO AHEAD",sta_ets,"SOLO_GSE","NONE","EARTH")
-    [bc_GSE_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_GSE","NONE","EARTH")
-    [bc_HCI_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_HCI","NONE","SUN")
+    #[bc_GSE_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_GSE","NONE","EARTH")
+    #[bc_HCI_pos, ltime] = sp.spkpos("BEPICOLOMBO MPO",bc_ets,"SOLO_HCI","NONE","SUN")
     [mer_GSE_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SOLO_GSE","NONE","EARTH")
     [mer_HCI_pos, ltime] = sp.spkpos("MERCURY",mer_ets,"SOLO_HCI","NONE","SUN")
     
-    bc_ets = np.concatenate((bc_ets,mer_ets))
-    bc_GSE_pos = np.concatenate((np.array(bc_GSE_pos),np.array(mer_GSE_pos)))
-    bc_HCI_pos = np.concatenate((np.array(bc_HCI_pos),np.array(mer_HCI_pos)))
+    #bc_ets = np.concatenate((bc_ets,mer_ets))
+   # bc_GSE_pos = np.concatenate((np.array(bc_GSE_pos),np.array(mer_GSE_pos)))
+    #bc_HCI_pos = np.concatenate((np.array(bc_HCI_pos),np.array(mer_HCI_pos)))
     
     solo_HCI_state = np.array(solo_HCI_state)
     solo_GSE_pos = np.array(solo_GSE_pos)/AU 
@@ -734,21 +734,21 @@ def main():
     delta_omega = calc_relative_rotation(solo_HCI_state)
     solo_clon = simple_carrington(solo_hlon,ets)
     
-    probe_GSE_pos = np.array(probe_GSE_pos)/AU
-    probe_HCI_pos = np.array(probe_HCI_pos)/AU
-    probe_hlat = np.zeros(len(probe_ets))    
-    for i, void in enumerate(probe_ets):
-        [buffer,buffer,probe_hlat[i]] = sp.reclat(probe_HCI_pos[i,:])
-    probe_hlat = probe_hlat*sp.dpr()
+    # probe_GSE_pos = np.array(probe_GSE_pos)/AU
+    # probe_HCI_pos = np.array(probe_HCI_pos)/AU
+    # probe_hlat = np.zeros(len(probe_ets))    
+    # for i, void in enumerate(probe_ets):
+    #     [buffer,buffer,probe_hlat[i]] = sp.reclat(probe_HCI_pos[i,:])
+    # probe_hlat = probe_hlat*sp.dpr()
 
     sta_GSE_pos = np.array(sta_GSE_pos)/AU
     
-    bc_GSE_pos = np.array(bc_GSE_pos)/AU
-    bc_HCI_pos = np.array(bc_HCI_pos)/AU
-    bc_hlat = np.zeros(len(bc_ets))    
-    for i, void in enumerate(bc_ets):
-        [buffer,buffer,bc_hlat[i]] = sp.reclat(bc_HCI_pos[i,:])
-    bc_hlat = bc_hlat*sp.dpr()
+    # bc_GSE_pos = np.array(bc_GSE_pos)/AU
+    # bc_HCI_pos = np.array(bc_HCI_pos)/AU
+    # bc_hlat = np.zeros(len(bc_ets))    
+    # for i, void in enumerate(bc_ets):
+    #     [buffer,buffer,bc_hlat[i]] = sp.reclat(bc_HCI_pos[i,:])
+    # bc_hlat = bc_hlat*sp.dpr()
 
     
 
@@ -760,12 +760,12 @@ def main():
         LTP_startdex = np.min(np.where(ets >= LTP_start))
         LTP_enddex = np.max(np.where(ets < LTP_end))
         
-        plot_probe = False
-        probe_index_range = np.where(np.logical_and(np.greater_equal(probe_ets,LTP_start),np.less(probe_ets,LTP_end)))
-        if len(probe_index_range[0]) > 0:
-            plot_probe = True
-            probe_startdex = np.min(probe_index_range)
-            probe_enddex = np.max(probe_index_range)
+        # plot_probe = False
+        # probe_index_range = np.where(np.logical_and(np.greater_equal(probe_ets,LTP_start),np.less(probe_ets,LTP_end)))
+        # if len(probe_index_range[0]) > 0:
+        #     plot_probe = True
+        #     probe_startdex = np.min(probe_index_range)
+        #     probe_enddex = np.max(probe_index_range)
 
         plot_sta = False
         sta_index_range = np.where(np.logical_and(np.greater_equal(sta_ets,LTP_start),np.less(sta_ets,LTP_end)))
@@ -774,12 +774,12 @@ def main():
             sta_startdex = np.min(sta_index_range)
             sta_enddex = np.max(sta_index_range)
 
-        plot_bc = False
-        bc_index_range = np.where(np.logical_and(np.greater_equal(bc_ets,LTP_start),np.less(bc_ets,LTP_end)))
-        if len(bc_index_range[0]) > 0:
-            plot_bc = True
-            bc_startdex = np.min(bc_index_range)
-            bc_enddex = np.max(bc_index_range)
+        # plot_bc = False
+        # bc_index_range = np.where(np.logical_and(np.greater_equal(bc_ets,LTP_start),np.less(bc_ets,LTP_end)))
+        # if len(bc_index_range[0]) > 0:
+        #     plot_bc = True
+        #     bc_startdex = np.min(bc_index_range)
+        #     bc_enddex = np.max(bc_index_range)
 
 
 
@@ -823,19 +823,19 @@ def main():
         
         orbit.plot(solo_GSE_pos[LTP_startdex:LTP_enddex,0],solo_GSE_pos[LTP_startdex:LTP_enddex,1],linewidth=2,label="solo",color="black")     
         orbit_ticks(orbit,ets[LTP_startdex:LTP_enddex], "solo")
-        if plot_probe: 
-            orbit.plot(probe_GSE_pos[probe_startdex:probe_enddex,0],probe_GSE_pos[probe_startdex:probe_enddex,1], linewidth=1, label="psp", color = "darkorchid")
-            orbit_ticks(orbit,probe_ets[probe_startdex:probe_enddex], "psp")
-            hlats.plot(probe_ets,probe_hlat, linewidth=1,label="psp", color = "darkorchid")
+        # if plot_probe: 
+        #     orbit.plot(probe_GSE_pos[probe_startdex:probe_enddex,0],probe_GSE_pos[probe_startdex:probe_enddex,1], linewidth=1, label="psp", color = "darkorchid")
+        #     orbit_ticks(orbit,probe_ets[probe_startdex:probe_enddex], "psp")
+        #     hlats.plot(probe_ets,probe_hlat, linewidth=1,label="psp", color = "darkorchid")
 
         if plot_sta: 
             orbit.plot(sta_GSE_pos[sta_startdex:sta_enddex,0],sta_GSE_pos[sta_startdex:sta_enddex,1], linewidth=1, label="stereo", color = "olivedrab")
             orbit_ticks(orbit,sta_ets[sta_startdex:sta_enddex], "stereo")
 
-        if plot_bc: 
-            orbit.plot(bc_GSE_pos[bc_startdex:bc_enddex,0],bc_GSE_pos[bc_startdex:bc_enddex,1], linewidth=1, label="bc", color = "darkgoldenrod")
-            orbit_ticks(orbit,bc_ets[bc_startdex:bc_enddex], "bc")
-            hlats.plot(bc_ets,bc_hlat, linewidth=1,label="bc", color = "darkgoldenrod")
+        # if plot_bc: 
+        #     orbit.plot(bc_GSE_pos[bc_startdex:bc_enddex,0],bc_GSE_pos[bc_startdex:bc_enddex,1], linewidth=1, label="bc", color = "darkgoldenrod")
+        #     orbit_ticks(orbit,bc_ets[bc_startdex:bc_enddex], "bc")
+        #     hlats.plot(bc_ets,bc_hlat, linewidth=1,label="bc", color = "darkgoldenrod")
 
         hdist.plot(ets,solo_hdis, linewidth=2,label="solo", color = "black")
         hlats.plot(ets,solo_hlat, linewidth=2,label="solo", color = "black")
@@ -869,8 +869,8 @@ def main():
 
         if config["plot_type"] == "ltp":
             if plot_sta: orbit.plot(sta_GSE_pos[sta_startdex,0],sta_GSE_pos[sta_startdex,1]," sk",markersize=7, color="olivedrab")
-            if plot_probe: orbit.plot(probe_GSE_pos[probe_startdex,0],probe_GSE_pos[probe_startdex,1]," sk",markersize=7, color="darkorchid")
-            if plot_bc: orbit.plot(bc_GSE_pos[bc_startdex,0],bc_GSE_pos[bc_startdex,1]," sk",markersize=7, color="darkgoldenrod")
+            # if plot_probe: orbit.plot(probe_GSE_pos[probe_startdex,0],probe_GSE_pos[probe_startdex,1]," sk",markersize=7, color="darkorchid")
+            # if plot_bc: orbit.plot(bc_GSE_pos[bc_startdex,0],bc_GSE_pos[bc_startdex,1]," sk",markersize=7, color="darkgoldenrod")
             if LTP_counter == 0:
                 orbit.plot(solo_GSE_pos[commissioning_enddex,0],solo_GSE_pos[commissioning_enddex,1]," sk",markersize=15)
                 hdist.plot(ets[commissioning_enddex],solo_hdis[commissioning_enddex]," sk",markersize=10)
@@ -885,21 +885,21 @@ def main():
             dir_string = "LTP"+"{:02d}".format(LTP_counter+1)
             if not os.path.exists(dir_string): os.makedirs(dir_string)
             solo_indices = np.arange(LTP_startdex,LTP_enddex)
-            if plot_probe: probe_indices = np.arange(probe_startdex,probe_enddex)
+          #  if plot_probe: probe_indices = np.arange(probe_startdex,probe_enddex)
             if plot_sta: sta_indices = np.arange(sta_startdex,sta_enddex)
-            if plot_bc: bc_indices = np.arange(bc_startdex,bc_enddex)
+           # if plot_bc: bc_indices = np.arange(bc_startdex,bc_enddex)
             timestring_old = "Period Start"
             for j in solo_indices:
                 j_others = j-np.min(solo_indices)
                 plot_probe2 = False
                 plot_sta2 = False
                 plot_bc2 = False
-                if plot_probe:
-                    if j_others < len(probe_indices): plot_probe2 = True
+             #   if plot_probe:
+             #       if j_others < len(probe_indices): plot_probe2 = True
                 if plot_sta:
                     if j_others < len(sta_indices): plot_sta2 = True
-                if plot_bc:
-                    if j_others < len(bc_indices): plot_bc2 = True
+            #    if plot_bc:
+             #       if j_others < len(bc_indices): plot_bc2 = True
                 timestring = sp.timout(ets[j], "YYYY-MM-DD HR:MN ::UTC")
                 for t in legend.texts:
                     if t.get_text() == timestring_old:
@@ -911,12 +911,12 @@ def main():
                 omega.plot(ets[j],delta_omega[j]," sk",markersize=10, label="moveme")
                 rolls.plot(ets[j],solo_clon[j]," sk",markersize=10, label="moveme")
                 if plot_sta2: orbit.plot(sta_GSE_pos[sta_indices[j_others],0],sta_GSE_pos[sta_indices[j_others],1]," sk",markersize=7, color="olivedrab",label="moveme")
-                if plot_probe2:
-                    orbit.plot(probe_GSE_pos[probe_indices[j_others],0],probe_GSE_pos[probe_indices[j_others],1]," sk",markersize=7, color="darkorchid", label="moveme")
-                    hlats.plot(probe_ets[probe_indices[j_others]],probe_hlat[probe_indices[j_others]]," sk",markersize=5,label="moveme", color = "darkorchid")
-                if plot_bc2:
-                    orbit.plot(bc_GSE_pos[bc_indices[j_others],0],bc_GSE_pos[bc_indices[j_others],1]," sk",markersize=7, color="darkgoldenrod", label="moveme")
-                    hlats.plot(bc_ets[bc_indices[j_others]],bc_hlat[bc_indices[j_others]]," sk",markersize=5,label="moveme", color = "darkgoldenrod")
+             #   if plot_probe2:
+             #       orbit.plot(probe_GSE_pos[probe_indices[j_others],0],probe_GSE_pos[probe_indices[j_others],1]," sk",markersize=7, color="darkorchid", label="moveme")
+             #       hlats.plot(probe_ets[probe_indices[j_others]],probe_hlat[probe_indices[j_others]]," sk",markersize=5,label="moveme", color = "darkorchid")
+            #    if plot_bc2:
+             #       orbit.plot(bc_GSE_pos[bc_indices[j_others],0],bc_GSE_pos[bc_indices[j_others],1]," sk",markersize=7, color="darkgoldenrod", label="moveme")
+              #      hlats.plot(bc_ets[bc_indices[j_others]],bc_hlat[bc_indices[j_others]]," sk",markersize=5,label="moveme", color = "darkgoldenrod")
 
                 filename_time = sp.timout(ets[j], "YYYYMMDDHRMN ::UTC")
                 filename = dir_string+"/GSE_Orbit_Plot_LTP"+"{:02d}".format(LTP_counter+1)+"_"+filename_time+"_bc."+config["outformat"]
