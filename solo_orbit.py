@@ -86,6 +86,7 @@ def main(time, plot = False):
     [solo_GSE_pos, ltime_gse] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")
     [solo_HCI_state, ltime] = sp.spkezr("SOLO",ets,"SOLO_HCI","NONE","SUN") #sp.spkezr("SOLO",ets,"SUN_INERTIAL","NONE","SUN")
     [earth_HCI_pos, ltime] = sp.spkpos("EARTH",ets,"SOLO_HCI","NONE","SUN") 
+    [venus_HCI_pos, ltime] = sp.spkpos("VENUS",ets,"SOLO_HCI","NONE","SUN")
 
     solo_HCI_state = np.array(solo_HCI_state)
     solo_GSE_pos = np.array(solo_GSE_pos)/AU 
@@ -100,14 +101,19 @@ def main(time, plot = False):
     earth_HCI_pos = np.array(earth_HCI_pos)
     earth_hlat = np.zeros(len(ets))
 
+    venus_HCI_pos = np.array(venus_HCI_pos)
+    venus_hlat = np.zeros(len(ets))
+
     for i, void in enumerate(ets):
         [solo_hdis[i],solo_hlon[i],solo_hlat[i]] = sp.reclat(solo_HCI_pos[i,:])
         [buffer,buffer,earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
+        [buffer,buffer,venus_hlat[i]] = sp.reclat(venus_HCI_pos[i,:])
 
     solo_hdis = solo_hdis/AU   
     solo_hlat = solo_hlat*sp.dpr()
     solo_HCI_pos /= AU
     earth_HCI_pos /= AU
+    venus_HCI_pos /= AU
 
     begin = et2datetime64(et_bounds[0])
     end = et2datetime64(et_bounds[1])
@@ -147,7 +153,17 @@ def main(time, plot = False):
 
         hrt_sol_radius = distance_to_sun*hrt_fov_radians*AU/solar_radius #(in km)
 
-        print(f"Solar Radius visible in HRT FOV is {hrt_sol_radius:.3g} solar radii \n")
+        print(f"Solar Radius visible in HRT FOV along X or Y direction is {hrt_sol_radius:.3g} solar radii \n")
+
+        hrt_fov_deg_diag = math.sqrt(2*1024**2)*0.5/3600 #degrees of half the fov in one direction
+
+        hrt_fov_radians_diag = hrt_fov_deg_diag/180 *math.pi
+
+        solar_radius = 696340
+
+        hrt_sol_radius_diag = distance_to_sun*hrt_fov_radians_diag*AU/solar_radius
+
+        print(f"Solar Radius visible in HRT FOV along diagonals is {hrt_sol_radius_diag:.3g} solar radii \n")
 
         print(f"Light time to Earth is {ltime_gse[nearest_idx_et]:.4g} seconds\n")
 
@@ -180,6 +196,7 @@ def main(time, plot = False):
 
         inst_pos_hci = HCI_pos.T
         inst_earth_hci = earth_HCI_pos[nearest_idx_et].T
+        inst_venus_hci = venus_HCI_pos[nearest_idx_et].T
         fig = plt.figure(figsize=(9, 9))
         ax  = fig.add_subplot(111, projection='3d')
         ax.scatter(inst_pos_hci[0], inst_pos_hci[1], inst_pos_hci[2], label = "SOLO")
@@ -195,12 +212,25 @@ def main(time, plot = False):
 
         plt.savefig("./plots/inst_position_3d")
 
+        points = 100
+        earth_orbit_traj = earth_HCI_pos[nearest_idx_et-points*10: nearest_idx_et+5*points].T
+        venus_orbit_traj = venus_HCI_pos[nearest_idx_et-points*10: nearest_idx_et+5*points].T
+
+        solo_orbit_traj = solo_HCI_pos[:nearest_idx_et+points].T #nearest_idx_et-points*10
+
         fig, ax = plt.subplots(figsize=(9, 9))
-        ax.scatter(inst_pos_hci[0], inst_pos_hci[1], label = "SOLO")
-        ax.scatter(inst_earth_hci[0], inst_earth_hci[1], label = "EARTH")
-        ax.scatter(0, 0, label = "SUN")
+        ax.scatter(inst_pos_hci[0], inst_pos_hci[1], label = "SOLO", color = "blue", s = 60, edgecolors='black')
+        ax.scatter(inst_earth_hci[0], inst_earth_hci[1], label = "EARTH", color = "green", s = 60, edgecolors='black')
+        ax.scatter(inst_venus_hci[0], inst_venus_hci[1], label = "VENUS", color = "orange", s = 60, edgecolors='black')
+
+        ax.plot(earth_orbit_traj[0],earth_orbit_traj[1], linestyle = '--', color = "green")
+        ax.plot(venus_orbit_traj[0],venus_orbit_traj[1], linestyle = '--', color = "orange")
+        #earth_traj = plt.Circle((0,0), 1, fill = False, color = "green", linestyle = '--')
+        #ax.add_patch(earth_traj) earth's trajectory not perfect circle - interested in the difference
+        ax.plot(solo_orbit_traj[0],solo_orbit_traj[1], linestyle = '--', color = "blue")
+        ax.scatter(0, 0, label = "SUN", color = "yellow", s = 100, edgecolors='black')
         plt.legend()
-        plt.title(f'Solo HCI Position from at {time} on Ecliptical plane')
+        plt.title(f'Solo HCI Position at {time} on Ecliptical plane')
         ax.set_xlabel("X (AU)")
         ax.set_ylabel("Y (AU)")
         
