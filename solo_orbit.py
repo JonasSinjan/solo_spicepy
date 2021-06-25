@@ -1,17 +1,11 @@
 import numpy as np
 import os
-from numpy.core.einsumfunc import _einsum_path_dispatcher
 import spiceypy as sp
 from pathlib import Path
 import spiceypy.utils.support_types as stypes
 import json
-import xml.etree.ElementTree as xmlet
+import math
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import matplotlib.lines as mlines
-import more_itertools as mit
-
-from IPython.core.debugger import set_trace
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -71,82 +65,154 @@ def read_json(filename):
             config = json.load(f)
     return(config)
 
-def main():
-    AU = 149598000.0
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
+def main(time, plot = False):
+    AU = 149598000.0 #in km
     "Does the Stuff"
     config = read_json("orbit_config_js.json")
     mk_path = Path(config["metakernel"]["path"])
     mk_name = config["metakernel"]["name"]
     loaded=loadkernel(mk_path, mk_name)
 
-    et_bounds=get_solo_coverage(mk_path)
+    et_bounds=get_solo_coverage(mk_path) #ephemeris time
 
-    ets = np.arange(et_bounds[0],et_bounds[1],21600)
+    ets = np.linspace(et_bounds[0],et_bounds[1],15744)
     ets[len(ets)-1]=et_bounds[1]
 
-    [solo_GSE_pos, ltime] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")
-    [solo_HCI_state, ltime] = sp.spkezr("SOLO",ets,"SUN_INERTIAL","NONE","SUN") 
+    [solo_GSE_pos, ltime_gse] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")
+    [solo_HCI_state, ltime] = sp.spkezr("SOLO",ets,"SOLO_HCI","NONE","SUN") #sp.spkezr("SOLO",ets,"SUN_INERTIAL","NONE","SUN")
+    [earth_HCI_pos, ltime] = sp.spkpos("EARTH",ets,"SOLO_HCI","NONE","SUN") 
 
     solo_HCI_state = np.array(solo_HCI_state)
     solo_GSE_pos = np.array(solo_GSE_pos)/AU 
     solo_HCI_pos = solo_HCI_state[:,0:3]
-    solo_HCI_vel = solo_HCI_state[:,3:6]    
+
+    solo_HCI_vel = solo_HCI_state[:,3:6] #in km/s    
+    
     solo_hdis = np.zeros(len(ets))
     solo_hlon = np.zeros(len(ets))
     solo_hlat = np.zeros(len(ets)) 
 
+    earth_HCI_pos = np.array(earth_HCI_pos)
+    earth_hlat = np.zeros(len(ets))
+
+    for i, void in enumerate(ets):
+        [solo_hdis[i],solo_hlon[i],solo_hlat[i]] = sp.reclat(solo_HCI_pos[i,:])
+        [buffer,buffer,earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
+
     solo_hdis = solo_hdis/AU   
-
     solo_hlat = solo_hlat*sp.dpr()
-
-    #print(ets, ets.shape)
-    #print(solo_GSE_pos, solo_GSE_pos.shape)
-
-    # plt.figure()
-    # plt.plot(ets, solo_GSE_pos)
+    solo_HCI_pos /= AU
+    earth_HCI_pos /= AU
 
     begin = et2datetime64(et_bounds[0])
-
     end = et2datetime64(et_bounds[1])
 
     begin_str = np.datetime_as_string(begin, unit = 'D')[0]
     end_str = np.datetime_as_string(end, unit = 'D')[0]
+    
+    if time <= begin or time >= end:
+        print(f"Requested time is not covered by the Kernel. Begin is {begin_str}. End is {end_str}")
 
-    print(begin_str)
-    print(end_str)
+    else:
+        print("\nSolar Orbiter Orbit Information \n")
 
-    #print(solo_HCI_pos, solo_HCI_pos.shape)
-    #print(solo_hdis, solo_hdis.shape)
-    #print(solo_hlat, solo_hlat.shape)
+        print(f"Your desired time is {time} \n")
 
-    positions = solo_GSE_pos.T # positions is shaped (4000, 3), let's transpose to (3, 4000) for easier indexing
-    fig = plt.figure(figsize=(9, 9))
-    ax  = fig.add_subplot(111, projection='3d')
-    ax.plot(positions[0], positions[1], positions[2])
-    plt.title(f'Solo GSE Position from {begin_str} to {end_str}')
-    ax.set_xlabel("X (AU)")
-    ax.set_ylabel("Y (AU)")
-    ax.set_zlabel("Z (AU)")
-    #plt.show()
+        desired_et = datetime642et(time)
 
-    plt.savefig("./plots/solo_orbit_plot_gse")
+        nearest_idx_et = find_nearest(ets, desired_et)
+        
+        HCI_pos = solo_HCI_pos[nearest_idx_et]
 
-    positions_hci = solo_HCI_pos.T # positions is shaped (4000, 3), let's transpose to (3, 4000) for easier indexing
-    fig = plt.figure(figsize=(9, 9))
-    ax  = fig.add_subplot(111, projection='3d')
-    ax.plot(positions_hci[0], positions_hci[1], positions_hci[2])
-    plt.title(f'Solo HCI Position from {begin_str} to {end_str}')
-    ax.set_xlabel("X (AU)")
-    ax.set_ylabel("Y (AU)")
-    ax.set_zlabel("Z (AU)")
-    #plt.show()
+        #print(HCI_pos)
 
-    plt.savefig("./plots/solo_orbit_plot")
+        distance_to_sun = solo_hdis[nearest_idx_et]
+
+        print(f"Distance to the Sun is: {distance_to_sun:.3g} AU \n")
+
+        print(f"Latitude = {solo_hlat[nearest_idx_et]*180/math.pi:.3g} \n") #range between -90 and 90 - angle from XY plane of the ray from origin to point
+
+        print(f"Longitude = {solo_hlon[nearest_idx_et]*180/math.pi:.3g} \n") #range is between -180 and 180
+
+        hrt_fov_deg = 1024*0.5/3600 #degrees of half the fov in one direction
+
+        hrt_fov_radians = hrt_fov_deg/180 *math.pi
+
+        solar_radius = 696340
+
+        hrt_sol_radius = distance_to_sun*hrt_fov_radians*AU/solar_radius #(in km)
+
+        print(f"Solar Radius visible in HRT FOV is {hrt_sol_radius:.3g} solar radii \n")
+
+        print(f"Light time to Earth is {ltime_gse[nearest_idx_et]:.4g} seconds\n")
+
+
+    if plot:
+
+        positions = solo_GSE_pos.T # positions is shaped (4000, 3), let's transpose to (3, 4000) for easier indexing
+        fig = plt.figure(figsize=(9, 9))
+        ax  = fig.add_subplot(111, projection='3d')
+        ax.plot(positions[0], positions[1], positions[2])
+        plt.title(f'Solo GSE Position from {begin_str} to {end_str}')
+        ax.set_xlabel("X (AU)")
+        ax.set_ylabel("Y (AU)")
+        ax.set_zlabel("Z (AU)")
+        #plt.show()
+
+        plt.savefig("./plots/solo_orbit_plot_gse")
+
+        positions_hci = solo_HCI_pos.T # positions is shaped (4000, 3), let's transpose to (3, 4000) for easier indexing
+        fig = plt.figure(figsize=(9, 9))
+        ax  = fig.add_subplot(111, projection='3d')
+        ax.plot(positions_hci[0], positions_hci[1], positions_hci[2])
+        plt.title(f'Solo HCI Position from {begin_str} to {end_str}')
+        ax.set_xlabel("X (AU)")
+        ax.set_ylabel("Y (AU)")
+        ax.set_zlabel("Z (AU)")
+        #plt.show()
+
+        plt.savefig("./plots/solo_orbit_plot")
+
+        inst_pos_hci = HCI_pos.T
+        inst_earth_hci = earth_HCI_pos[nearest_idx_et].T
+        fig = plt.figure(figsize=(9, 9))
+        ax  = fig.add_subplot(111, projection='3d')
+        ax.scatter(inst_pos_hci[0], inst_pos_hci[1], inst_pos_hci[2], label = "SOLO")
+        ax.scatter(inst_earth_hci[0], inst_earth_hci[1], inst_earth_hci[2], label = "EARTH")
+        ax.scatter(0, 0, 0, label = "SUN")
+        plt.legend()
+        plt.title(f'Solo HCI Position from at {time}')
+        ax.set_xlabel("X (AU)")
+        ax.set_ylabel("Y (AU)")
+        ax.set_zlabel("Z (AU)")
+        
+        #ax.view_init(elev = 90, azim = 90)
+
+        plt.savefig("./plots/inst_position_3d")
+
+        fig, ax = plt.subplots(figsize=(9, 9))
+        ax.scatter(inst_pos_hci[0], inst_pos_hci[1], label = "SOLO")
+        ax.scatter(inst_earth_hci[0], inst_earth_hci[1], label = "EARTH")
+        ax.scatter(0, 0, label = "SUN")
+        plt.legend()
+        plt.title(f'Solo HCI Position from at {time} on Ecliptical plane')
+        ax.set_xlabel("X (AU)")
+        ax.set_ylabel("Y (AU)")
+        
+        #ax.view_init(elev = 90, azim = 90)
+
+        plt.savefig("./plots/inst_position_2d")
+
 
     #plt.
 
 
 
+input_time = np.datetime64('2021-11-11T00:00')
 
-
-main()
+main(time = input_time, plot = True)
