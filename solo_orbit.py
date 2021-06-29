@@ -6,6 +6,7 @@ import spiceypy.utils.support_types as stypes
 import json
 import math
 import matplotlib.pyplot as plt
+import sys
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -100,17 +101,23 @@ def main(time, plot = False):
 
     earth_HCI_pos = np.array(earth_HCI_pos)
     earth_hlat = np.zeros(len(ets))
+    earth_hlon = np.zeros(len(ets))
 
     venus_HCI_pos = np.array(venus_HCI_pos)
     venus_hlat = np.zeros(len(ets))
 
     for i, void in enumerate(ets):
         [solo_hdis[i],solo_hlon[i],solo_hlat[i]] = sp.reclat(solo_HCI_pos[i,:])
-        [buffer,buffer,earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
+        [buffer,earth_hlon[i],earth_hlat[i]] = sp.reclat(earth_HCI_pos[i,:])
         [buffer,buffer,venus_hlat[i]] = sp.reclat(venus_HCI_pos[i,:])
 
     solo_hdis = solo_hdis/AU   
-    solo_hlat = solo_hlat*sp.dpr()
+    solo_hlat *= sp.dpr()
+    earth_hlat *= sp.dpr()
+
+    solo_hlon *= sp.dpr()
+    earth_hlon *= sp.dpr()
+
     solo_HCI_pos /= AU
     earth_HCI_pos /= AU
     venus_HCI_pos /= AU
@@ -141,9 +148,13 @@ def main(time, plot = False):
 
         print(f"Distance to the Sun is: {distance_to_sun:.3g} AU \n")
 
-        print(f"Latitude = {solo_hlat[nearest_idx_et]*180/math.pi:.3g} \n") #range between -90 and 90 - angle from XY plane of the ray from origin to point
+        solo_hlat_inst = solo_hlat[nearest_idx_et]
 
-        print(f"Longitude = {solo_hlon[nearest_idx_et]*180/math.pi:.3g} \n") #range is between -180 and 180
+        solo_hlon_inst = solo_hlon[nearest_idx_et]
+
+        print(f"Latitude = {solo_hlat_inst:.4g} \n") #range between -90 and 90 - angle from XY plane of the ray from origin to point
+
+        print(f"Longitude = {solo_hlon_inst:.4g} \n") #range is between -180 and 180
 
         hrt_fov_deg = 1024*0.5/3600 #degrees of half the fov in one direction
 
@@ -153,7 +164,7 @@ def main(time, plot = False):
 
         hrt_sol_radius = distance_to_sun*hrt_fov_radians*AU/solar_radius #(in km)
 
-        print(f"Solar Radius visible in HRT FOV along X or Y direction is {hrt_sol_radius:.3g} solar radii \n")
+        print(f"Solar Radius visible in HRT FOV along X or Y direction is {hrt_sol_radius:.4g} solar radii \n")
 
         hrt_fov_deg_diag = math.sqrt(2*1024**2)*0.5/3600 #degrees of half the fov in one direction
 
@@ -163,10 +174,30 @@ def main(time, plot = False):
 
         hrt_sol_radius_diag = distance_to_sun*hrt_fov_radians_diag*AU/solar_radius
 
-        print(f"Solar Radius visible in HRT FOV along diagonals is {hrt_sol_radius_diag:.3g} solar radii \n")
+        print(f"Solar Radius visible in HRT FOV along diagonals is {hrt_sol_radius_diag:.4g} solar radii \n")
 
         print(f"Light time to Earth is {ltime_gse[nearest_idx_et]:.4g} seconds\n")
 
+        hrt_pixel_size = 0.5/3600/180*math.pi*distance_to_sun*AU
+
+        print(f"HRT Pixel size on solar surface is {hrt_pixel_size:.4g} km \n")
+
+        earth_hlon_inst = earth_hlon[nearest_idx_et]
+        earth_hlat_inst = earth_hlat[nearest_idx_et]
+
+        solo_out_earth_line = abs(solo_hlon_inst - earth_hlon_inst)
+
+        if solo_out_earth_line > 180:
+
+            solo_out_earth_line = 180-abs(solo_hlon_inst) + 180-abs(earth_hlon_inst)
+
+        print(f"Solo latitude out of Earth-Sun Line is {solo_out_earth_line:.4g} degrees \n")
+
+        print(f"solo_hlon = {solo_hlon_inst:.4g} degrees ")
+        print(f"earth_hlon = {earth_hlon_inst:.4g} degrees\n")
+
+        print(f"solo_hlat = {solo_hlat_inst:.4g} degrees")
+        print(f"earth_hlat = {earth_hlat_inst:.4g} degrees\n")
 
     if plot:
 
@@ -241,8 +272,22 @@ def main(time, plot = False):
 
     #plt.
 
+if len(sys.argv) > 1:
 
+    input_time = np.datetime64(str(sys.argv[1]))
 
-input_time = np.datetime64('2021-11-11T00:00')
+    if len(sys.argv) > 2:
+        
+        plot_bool = sys.argv[2]
 
-main(time = input_time, plot = True)
+    else:
+
+        plot_bool = False
+
+else:
+
+    input_time = np.datetime64('2020-05-28T17:00')
+
+    plot_bool = False
+
+main(time = input_time, plot = plot_bool)
