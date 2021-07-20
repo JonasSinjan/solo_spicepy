@@ -7,6 +7,8 @@ import json
 import math
 import matplotlib.pyplot as plt
 import sys
+from subprocess import Popen
+import glob
 
 def loadkernel(kpath, kname):
     "This function loads a SPICE kernel (which could be a metakernel) then returns to the current working directory."
@@ -73,15 +75,30 @@ def find_nearest(array, value):
 
 def main(time, plot = False):
     AU = 149598000.0 #in km
-    "Does the Stuff"
-    config = read_json("orbit_config_js.json")
-    mk_path = Path(config["metakernel"]["path"])
-    mk_name = config["metakernel"]["name"]
+
+    #perform git pull on the kernels
+    #find the latest flown metakernel
+    cwd = os.getcwd()
+    os.chdir('./solar-orbiter')
+    Popen(['git', 'pull'])
+    os.chdir('./kernels/mk/')
+    files = os.listdir()
+
+    if 'solo_ANC_soc-flown-mk.tm' in files:
+        mk_name = "solo_ANC_soc-flown-mk.tm"
+    else:
+        print("Flown Metakernel does not exist")
+        exit()
+        
+    os.chdir(cwd)
+  
+    mk_path = "/scratch/slam/sinjan/solo_spiceypy/solar-orbiter/kernels/mk"#Path(config["metakernel"]["path"])
+    print(mk_name)
     loaded=loadkernel(mk_path, mk_name)
 
     et_bounds=get_solo_coverage(mk_path) #ephemeris time
 
-    ets = np.linspace(et_bounds[0],et_bounds[1],15744)
+    ets = np.linspace(et_bounds[0],et_bounds[1],100000)
     ets[len(ets)-1]=et_bounds[1]
 
     [solo_GSE_pos, ltime_gse] = sp.spkpos("SOLO",ets,"SOLO_GSE","NONE","EARTH")
@@ -147,6 +164,16 @@ def main(time, plot = False):
         distance_to_sun = solo_hdis[nearest_idx_et]
 
         print(f"Distance to the Sun is: {distance_to_sun:.3g} AU \n")
+
+        near_velo = solo_HCI_vel[nearest_idx_et]
+
+        print("Solo HCI Velocity (km/s): ")
+
+        print(f"v_x: {near_velo[0]:.4g}")
+
+        print(f"v_y: {near_velo[1]:.4g}")
+
+        print(f"v_z: {near_velo[2]:.4g}")
 
         solo_hlat_inst = solo_hlat[nearest_idx_et]
 
